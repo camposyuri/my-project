@@ -14,6 +14,7 @@ module.exports = (app) => {
       existsOrError(user.email, "Email was not informed");
       existsOrError(user.password, "Password was not informed");
 
+      // Catch e-mail been registered
       const userFromDB = await app
         .db("users")
         .where({ email: user.email })
@@ -46,12 +47,24 @@ module.exports = (app) => {
     app
       .db("users")
       .select("id", "name", "email", "admin")
+      .orderBy("id")
       .then((users) => res.json(users))
+      .catch((err) => res.status(500).send(err));
+  };
+
+  const getById = (req, res) => {
+    app
+      .db("users")
+      .select("id", "name", "email", "admin")
+      .where({ id: req.params.id })
+      .first()
+      .then((user) => res.json(user))
       .catch((err) => res.status(500).send(err));
   };
 
   return {
     save,
     get,
+    getById,
   };
 };
