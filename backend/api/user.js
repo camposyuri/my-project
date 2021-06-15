@@ -24,6 +24,7 @@ module.exports = (app) => {
         notExistsOrError(userFromDB, "User has already been registered");
       }
     } catch (msg) {
+      console.log(`Error: [api][user][save] >> error insert/put user]: ${msg}`);
       return res.status(400).send(msg);
     }
 
@@ -44,27 +45,56 @@ module.exports = (app) => {
   };
 
   const get = (req, res) => {
-    app
-      .db("users")
-      .select("id", "name", "email", "admin")
-      .orderBy("id")
-      .then((users) => res.json(users))
-      .catch((err) => res.status(500).send(err));
+    try {
+      app
+        .db("users")
+        .select("id", "name", "email", "admin")
+        .whereNull("deletedAt")
+        .orderBy("id")
+        .then((users) => res.json(users));
+    } catch (error) {
+      console.log(`[api][user][get] >> error get user]: ${error}`);
+      return res.status(500).send(error);
+    }
   };
 
   const getById = (req, res) => {
-    app
-      .db("users")
-      .select("id", "name", "email", "admin")
-      .where({ id: req.params.id })
-      .first()
-      .then((user) => res.json(user))
-      .catch((err) => res.status(500).send(err));
+    try {
+      app
+        .db("users")
+        .select("id", "name", "email", "admin")
+        .where({ id: req.params.id })
+        .whereNull("deletedAt")
+        .first()
+        .then((user) => res.json(user));
+    } catch (error) {
+      console.log(
+        `Error: [api][user][getById] >> error getById user]: ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
+  const remove = async (req, res) => {
+    try {
+      const rowUpdated = await app
+        .db("users")
+        .update({ deletedAt: new Date() })
+        .where({ id: req.params.id });
+
+      existsOrError(rowUpdated, "User not found");
+
+      return res.status(204).send();
+    } catch (msg) {
+      console.log(`Error: [api][user][remove] >> error remove user]: ${msg}`);
+      return res.status(500).send(msg);
+    }
   };
 
   return {
     save,
     get,
     getById,
+    remove,
   };
 };
