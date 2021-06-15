@@ -1,5 +1,13 @@
+const bcrypt = require("bcrypt-nodejs");
+
 module.exports = (app) => {
-  const { existsOrError, notExistsOrError } = app.api.validation;
+  const { existsOrError, notExistsOrError, equalOrError } = app.api.validation;
+
+  // Function encryptPassword
+  const encryptPassword = (password) => {
+    const salt = bcrypt.genSaltSync(10);
+    return bcrypt.hashSync(password, salt);
+  };
 
   // Function PUT and POST
   const save = async (req, res) => {
@@ -13,6 +21,11 @@ module.exports = (app) => {
       existsOrError(user.name, "User was not informed");
       existsOrError(user.email, "Email was not informed");
       existsOrError(user.password, "Password was not informed");
+      equalOrError(
+        user.password,
+        user.confirmPassword,
+        "Passwords don't match"
+      );
 
       // Catch e-mail been registered
       const userFromDB = await app
@@ -27,6 +40,9 @@ module.exports = (app) => {
       console.log(`Error: [api][user][save] >> error insert/put user]: ${msg}`);
       return res.status(400).send(msg);
     }
+
+    user.password = encryptPassword(user.password);
+    delete user.confirmPassword;
 
     if (user.id) {
       app
